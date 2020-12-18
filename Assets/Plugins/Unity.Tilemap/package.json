@@ -1,0 +1,13 @@
+{
+  "name": "unity.tilemap",
+  "displayName": "Tilemap",
+  "version": "0.0.1",
+  "unity": "2019.1",
+  "description": "",
+  "keywords": [
+    "unity",
+    "Tilemap"
+  ],
+  "category": "Unity",
+  "repoPackagePath": "../UnityPackages"
+}
