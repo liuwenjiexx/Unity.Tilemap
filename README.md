@@ -1,5 +1,17 @@
 # Tilemap
 
+瓷贴地图生成器
+
+
+
+## manifest.json
+
+```
+"unity.tilemap": "https://github.com/liuwenjiexx/Unity.Tilemap.git?path=/Assets/Plugins/Unity.Tilemap",
+```
+
+
+
 
 
 ## 预览
