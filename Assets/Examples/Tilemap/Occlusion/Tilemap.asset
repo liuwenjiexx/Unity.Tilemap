@@ -1,0 +1,159 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bd9819018e9013459b12246787e9a88, type: 3}
+  m_Name: Tilemap
+  m_EditorClassIdentifier: 
+  id: 
+  width: 30
+  height: 30
+  scale: 1
+  tiles:
+  - tile: {fileID: 11400000, guid: 67ae8edab424e6548a83a8ba4579f623, type: 2}
+    weight: 1
+    group: 0
+  - tile: {fileID: 11400000, guid: 6894a0b5fb6afb94b8e3298266ac7fe2, type: 2}
+    weight: 1
+    group: 1
+  - tile: {fileID: 11400000, guid: 4da4d3fb1f8db7241b4807f265f7714d, type: 2}
+    weight: 1
+    group: 2
+  layers:
+  - enabled: 1
+    _algorithm:
+      typeName: Unity.Tilemaps.RandomAlgorithm
+      fields:
+      - field: fillRate
+        value:
+          typeCode: 13
+          stringValue: 0.3
+          objectValue: {fileID: 0}
+          array: []
+      - field: blockWidth
+        value:
+          typeCode: 9
+          stringValue: 2
+          objectValue: {fileID: 0}
+          array: []
+      - field: blockHeight
+        value:
+          typeCode: 9
+          stringValue: 2
+          objectValue: {fileID: 0}
+          array: []
+      - field: margin
+        value:
+          typeCode: 46
+          stringValue: 0,0,0,0
+          objectValue: {fileID: 0}
+          array: []
+    _tileAlgorithm:
+      typeName: Unity.Tilemaps.TileAlgorithm
+      fields:
+      - field: CreateTileObjectCallback
+        value:
+          typeCode: 1
+          stringValue: 
+          objectValue: {fileID: 0}
+          array: []
+    offsetHeight: 0
+    blockMask: 0
+    tileBlockSize: 1
+    decorates: []
+    input:
+      mask: 0
+      maskToMap: 0
+    output:
+      mask: 0
+      mapToMask: 3
+    note: 
+    flags: 3
+    tileGroup: 0
+  - enabled: 1
+    _algorithm:
+      typeName: Unity.Tilemaps.RandomAlgorithm
+      fields:
+      - field: fillRate
+        value:
+          typeCode: 13
+          stringValue: 1
+          objectValue: {fileID: 0}
+          array: []
+      - field: blockWidth
+        value:
+          typeCode: 9
+          stringValue: 2
+          objectValue: {fileID: 0}
+          array: []
+      - field: blockHeight
+        value:
+          typeCode: 9
+          stringValue: 2
+          objectValue: {fileID: 0}
+          array: []
+      - field: margin
+        value:
+          typeCode: 46
+          stringValue: 0,0,0,0
+          objectValue: {fileID: 0}
+          array: []
+    _tileAlgorithm:
+      typeName: Unity.Tilemaps.TileAlgorithm
+      fields:
+      - field: CreateTileObjectCallback
+        value:
+          typeCode: 1
+          stringValue: 
+          objectValue: {fileID: 0}
+          array: []
+    offsetHeight: 0
+    blockMask: 0
+    tileBlockSize: 1
+    decorates: []
+    input:
+      mask: 0
+      maskToMap: 0
+    output:
+      mask: 0
+      mapToMask: 3
+    note: 
+    flags: 3
+    tileGroup: 1
+  - enabled: 1
+    _algorithm:
+      typeName: Unity.Tilemaps.BlockAlgorithm
+      fields: []
+    _tileAlgorithm:
+      typeName: Unity.Tilemaps.TileAlgorithm
+      fields:
+      - field: CreateTileObjectCallback
+        value:
+          typeCode: 1
+          stringValue: 
+          objectValue: {fileID: 0}
+          array: []
+    offsetHeight: 0
+    blockMask: 0
+    tileBlockSize: 1
+    decorates: []
+    input:
+      mask: 0
+      maskToMap: 4
+    output:
+      mask: 0
+      mapToMask: 3
+    note: 
+    flags: 3
+    tileGroup: 2
+  data:
+    _provider:
+      typeName: Unity.Tilemaps.TilemapDataProvider
+      fields: []

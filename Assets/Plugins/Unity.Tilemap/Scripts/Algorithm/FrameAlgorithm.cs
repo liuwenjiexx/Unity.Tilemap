@@ -7,12 +7,12 @@ namespace Unity.Tilemaps
     public class FrameAlgorithm : BlockAlgorithm
     {
         [SerializeField]
-        public RectOffsetSerializable border;
+        public RectOffsetSerializable margin = new();
         [SerializeField]
-        public RectOffsetSerializable margin;  
-
-        public int padding;
-        public bool fixedMax;
+        public RectOffsetSerializable border = new();
+        [SerializeField]
+        public RectOffsetSerializable padding = new();
+        public bool content = false;
 
 
         public override void Generate(TilemapData map, TilemapData mask, out Vector3 startPosition, out Vector3 endPosition)
@@ -23,7 +23,7 @@ namespace Unity.Tilemaps
             int width = map.Width, height = map.Height;
             int minX, maxX, minY, maxY;
 
-            if (fixedMax)
+            if (!content)
             {
                 minX = 0;
                 minY = 0;
@@ -64,10 +64,10 @@ namespace Unity.Tilemaps
             }
 
 
-            minX -= padding;
-            minY -= padding;
-            maxY += padding;
-            maxX += padding;
+            minX -= padding.left;
+            minY -= padding.bottom;
+            maxY += padding.top;
+            maxX += padding.right;
 
             if (margin != null)
             {
@@ -83,7 +83,7 @@ namespace Unity.Tilemaps
             if (bWidth > 0)
             {
                 map.Fill(minX, minY, bWidth, border.bottom, TilemapData.BLOCK);
-                map.Fill(minX, maxY - border.top + 1, bWidth, border.bottom, TilemapData.BLOCK);
+                map.Fill(minX, maxY - border.top + 1, bWidth, border.top, TilemapData.BLOCK);
             }
 
             if (bHeight > 0)

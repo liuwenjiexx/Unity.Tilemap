@@ -12,7 +12,10 @@ namespace Unity.Tilemaps
         public float fillRate = 0.5f;
         public MirrorType mirrorType = MirrorType.Mirror;
         public int blockWidth = 2;
-        public int blockHeight = 2; 
+        public int blockHeight = 2;
+        public int aliginWidth = 2;
+        public int aliginHeight = 2;
+        public bool aliginBlock = !TilemapData.BLOCK;
 
         public enum MirrorType
         {
@@ -31,7 +34,7 @@ namespace Unity.Tilemaps
             var build = new RandomAlgorithm();
             build.fillRate = fillRate;
             build.blockWidth = blockWidth;
-            build.blockHeight = blockWidth; 
+            build.blockHeight = blockWidth;
             build.Generate(map, mask, out startPosition, out endPosition);
 
             //float blockRate = fillRate;
@@ -68,11 +71,12 @@ namespace Unity.Tilemaps
                 }
             }
 
-            map.ClipInvalidTileType(mask);
-            if (blockWidth > 1 || blockHeight > 1)
-                map.AliginBlock(blockWidth, blockHeight, !TilemapData.BLOCK);
+            map.ClearInvalidBlock(mask);
 
+            map.AliginBlock(aliginWidth, aliginHeight, aliginBlock);
         }
+
+
         public void GetTemplateSize(TilemapData map, out int blockWidth, out int blockHeight)
         {
             blockWidth = map.Width;
@@ -114,14 +118,14 @@ namespace Unity.Tilemaps
                     {
                         int halfHeight = height / 2;
                         map.Copy(0, 0, map, 0, halfHeight, width, halfHeight);
-                        Transform(map, 0, halfHeight, width, width, halfHeight, mirrorType);
+                        Transform(map, 0, halfHeight, width, width, halfHeight, MirrorType.Vertical);
                     }
                     break;
                 case MirrorType.Horizontal:
                     {
                         int halfWidth = width / 2;
                         map.Copy(0, 0, map, halfWidth, 0, halfWidth, height);
-                        Transform(map, halfWidth, 0, width, halfWidth, height, mirrorType);
+                        Transform(map, halfWidth, 0, width, halfWidth, height, MirrorType.Horizontal);
                     }
                     break;
             }
@@ -155,24 +159,53 @@ namespace Unity.Tilemaps
                     break;
                 case MirrorType.Vertical:
                     {
-                        int srcIndex;
-                        int dstIndex;
-                        int halfHeight = (int)(blockHeight * 0.5f);
-                        int srcLength = map.Width * map.Height;
-                        bool tmp;
-                        for (int i = 0; i < halfHeight; i++)
-                            for (int j = 0; j < blockWidth; j++)
-                            {
-                                srcIndex = (y + i) * width + (x + j);
-                                if (srcIndex < 0 || srcIndex >= srcLength)
-                                    continue;
-                                dstIndex = (y + blockHeight - 1 - i) * width + (x + j);
-                                if (dstIndex < 0 || dstIndex >= srcLength)
-                                    continue;
-                                tmp = map[srcIndex];
-                                map[srcIndex] = map[dstIndex];
-                                map[dstIndex] = tmp;
-                            }
+                        if (true)
+                        {
+
+                            int srcIndex;
+                            int dstIndex;
+                            int halfHeight = blockHeight / 2;
+                            int srcLength = map.Width * map.Height;
+                            bool tmp;
+
+                            for (int i = 0; i < halfHeight; i++)
+                                for (int j = 0; j < blockWidth; j++)
+                                {
+                                    srcIndex = (y + i) * width + (x + j);
+                                    if (srcIndex < 0 || srcIndex >= srcLength)
+                                        continue;
+                                    dstIndex = (y + blockHeight - 1 - i) * width + (x + j);
+                                    if (dstIndex < 0 || dstIndex >= srcLength)
+                                        continue;
+                                    tmp = map[srcIndex];
+                                    map[srcIndex] = map[dstIndex];
+                                    map[dstIndex] = tmp;
+                                }
+                        }
+                        else
+                        {
+                            Vector2Int src = new Vector2Int();
+                            Vector2Int dst = new Vector2Int();
+                            int startX, startY, endX, endY;
+                            int halfHeight = blockHeight / 2;
+                            startX = map.ClampX(x);
+                            endX = map.ClampX(x + blockWidth);
+                            startY = map.ClampY(y);
+                            endY = map.ClampY(y + halfHeight);
+                            for (int i = 0; i < halfHeight; i++)
+                                for (int j = startX; j <= endX; j++)
+                                {
+                                    src.x = j;
+                                    src.y = y + i;
+                                    if (map.IsValidPoint(src.x, src.y, blockWidth, blockHeight))
+                                        continue;
+                                    dst.x = j;
+                                    dst.y = (y + blockHeight - 1 - i);
+                                    if (map.IsValidPoint(dst.x, dst.y, blockWidth, blockHeight))
+                                        continue;
+                                    map[dst] = map[src];
+                                }
+                        }
                     }
                     break;
                 case MirrorType.Mirror:
@@ -184,6 +217,28 @@ namespace Unity.Tilemaps
                     break;
             }
         }
+
+        //void ReverseVertical(TilemapData map, int x, int y,  int blockWidth, int blockHeight)
+        //{
+        //    int srcIndex;
+        //    int dstIndex;
+        //    int halfWidth = (int)(blockWidth * 0.5f);
+        //    int srcLength = map.Width * map.Height;
+        //    bool tmp;
+        //    for (int i = 0; i < blockHeight; i++)
+        //        for (int j = 0; j < halfWidth; j++)
+        //        {
+        //            srcIndex = (y + i) * width + (x + j);
+        //            if (srcIndex < 0 || srcIndex >= srcLength)
+        //                continue;
+        //            dstIndex = (y + i) * width + (x + blockWidth - 1 - j);
+        //            if (dstIndex < 0 || dstIndex >= srcLength)
+        //                continue;
+        //            tmp = map[srcIndex];
+        //            map[srcIndex] = map[dstIndex];
+        //            map[dstIndex] = tmp;
+        //        }
+        //}
 
         bool IsMapBorder(TilemapData map, int x, int y)
         {

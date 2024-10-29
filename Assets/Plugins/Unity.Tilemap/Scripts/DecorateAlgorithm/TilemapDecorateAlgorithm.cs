@@ -68,15 +68,21 @@ namespace Unity.Tilemaps
                     position = pos,
                     rotation = rotation,
                     scale = new Vector3(scale, scale, scale),
+                    objectType = TileObjectType.Decorate,
                 };
 
+                GameObject go;
                 if (Application.isPlaying)
                 {
-                    creator.InstantiateGameObject(instantiateData);
+                    go= creator.InstantiateGameObject(instantiateData);
                 }
                 else
                 {
-                    TilemapCreator.EditorInstantiateGameObject(instantiateData);
+                    go= TilemapCreator.EditorInstantiateGameObject(instantiateData);
+                }
+                if (go)
+                {
+                    creator.AddObject(TileObjectType.Decorate, go);
                 }
             }
 

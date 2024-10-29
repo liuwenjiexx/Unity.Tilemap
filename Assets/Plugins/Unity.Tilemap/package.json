@@ -1,5 +1,5 @@
 {
-  "name": "unity.tilemap",
+  "name": "com.unity.tilemap",
   "displayName": "Tilemap",
   "version": "0.0.1",
   "unity": "2019.1",
@@ -8,6 +8,5 @@
     "unity",
     "Tilemap"
   ],
-  "category": "Unity",
-  "repoPackagePath": "../UnityPackages"
+  "category": "tilemap"
 }

@@ -82,6 +82,7 @@ namespace Unity.Tilemaps
         TileGround = 1 << 1,
         Hide = 1 << 2,
         GroundUseBlock = 1 << 3,
+        TileInverse = 1 << 4,
     }
     [Serializable]
     public class TilemapInput

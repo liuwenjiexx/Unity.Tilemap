@@ -28,7 +28,7 @@ namespace Unity.Tilemaps
                 return packageDir;
             }
         }
-
+        int FillSize { get => EditorSettings.fillSize; }
 
         private static string GetPackageDirectory(string packageName)
         {
@@ -80,7 +80,7 @@ namespace Unity.Tilemaps
                     TilemapCreator.EditorInstantiateGameObject = InstantiateGameObject;
             }
         }
-         
+
 
         void DrawGrid()
         {
@@ -144,29 +144,54 @@ namespace Unity.Tilemaps
             }
         }
 
-        void OnGridDown(Vector2Int grid)
+
+
+        IEnumerable<Vector2Int> EnumerateCells(Vector2Int cell, int fillSize)
         {
+            int half = (int)((fillSize - 1) * 0.5f);
+            int startX = cell.x - half, startY = cell.y + half;
 
-            if (selectedMap != null)
+            for (int i = 0; i < fillSize; i++)
             {
-                var newValue = selectedMap[Creator.GridToIndex(mouseOverGrid)];
-                if (Event.current.button == 0)
+                for (int j = 0; j < fillSize; j++)
                 {
-                    newValue = TilemapData.BLOCK;
+                    Vector2Int c = new Vector2Int(startX + i, startY - j);
+                    if (c.x >= Creator.Width)
+                        continue;
+                    if (c.y >= Creator.Height)
+                        continue;
+                    yield return c;
                 }
-                else
-                {
-                    newValue = !TilemapData.BLOCK;
-                }
-                if (selectedMap[Creator.GridToIndex(mouseOverGrid)] != newValue)
-                {
-                    selectedMap[Creator.GridToIndex(mouseOverGrid)] = newValue;
-                    Creator.isDirtied = true;
-                    Creator.BuildTileObject();
-                }
+            }
+        }
+        IEnumerable<int> EnumerateCellIndexs(Vector2Int cell, int fillSize)
+        {
+            foreach (var c in EnumerateCells(cell, fillSize))
+            {
+                yield return Creator.GridToIndex(c);
+            }
+        }
+        bool SetCellBlock(Vector2Int cell, int fillSize, bool block)
+        {
+            if (selectedMap == null)
+                return false;
 
+            bool changed = false;
+            foreach (var index in EnumerateCellIndexs(cell, fillSize))
+            {
+                if (selectedMap[index] != block)
+                {
+                    selectedMap[index] = block;
+                    changed = true;
+                }
             }
 
+            if (changed)
+            {
+                Creator.isDirtied = true;
+                Creator.BuildTileObject();
+            }
+            return changed;
         }
 
         public static void SelectLayer(int layer)
@@ -287,10 +312,14 @@ namespace Unity.Tilemaps
 
             if (isMouseOverGrid)
             {
+                var oldColor = Handles.color;
                 Handles.color = EditorSettings.hoverColor;
-                pos = creator.GridToWorldPosition(mouseOverGrid) + layerOffset;
-                Handles.CubeHandleCap(0, pos, creator.Root.rotation, config.scale, drawColorGridEventType);
-                Handles.color = Color.white;
+                foreach (var cell in EnumerateCells(mouseOverGrid, FillSize))
+                {
+                    pos = creator.GridToWorldPosition(cell) + layerOffset;
+                    Handles.CubeHandleCap(0, pos, creator.Root.rotation, config.scale, drawColorGridEventType);
+                }
+                Handles.color = oldColor;
             }
 
 
@@ -310,7 +339,16 @@ namespace Unity.Tilemaps
                 TilemapCreator.selectedLayerIndex = -1;
             }
             if (selectedMap != null)
+            {
                 DrawTilemapData(selectedMap, layerOffset, false, EditorSettings.groundColor);
+
+            }
+
+            if (isMouseOverGrid /*&& selectedMap != null*/ && evt.type == EventType.Repaint)
+            {
+                SceneView.RepaintAll();
+            }
+
             if (evt.type == EventType.MouseDown)
             {
                 if (isMouseOverGrid)
@@ -318,8 +356,16 @@ namespace Unity.Tilemaps
                     if (evt.button == 0 || evt.button == 1)
                     {
                         isDown = true;
-
-                        OnGridDown(mouseOverGrid);
+                        bool block = false;
+                        if (Event.current.button == 0)
+                        {
+                            block = TilemapData.BLOCK;
+                        }
+                        else
+                        {
+                            block = !TilemapData.BLOCK;
+                        }
+                        SetCellBlock(mouseOverGrid, FillSize, block);
                     }
                     evt.Use();
                 }
@@ -341,6 +387,22 @@ namespace Unity.Tilemaps
                 }
                 else if (evt.type == EventType.MouseDrag)
                 {
+                    if (isMouseOverGrid)
+                    {
+                        if (evt.button == 0 || evt.button == 1)
+                        {
+                            bool block = false;
+                            if (Event.current.button == 0)
+                            {
+                                block = TilemapData.BLOCK;
+                            }
+                            else
+                            {
+                                block = !TilemapData.BLOCK;
+                            }
+                            SetCellBlock(mouseOverGrid, FillSize, block);
+                        }
+                    }
                     if (evt.button != 2)
                     {
                         evt.Use();
@@ -566,6 +628,12 @@ namespace Unity.Tilemaps
                     Creator.Build();
                     EditorUtility.SetDirty(Creator.gameObject);
                 }
+                if (GUILayout.Button("Build Data"))
+                {
+                    Creator.Clear();
+                    Creator.BuildTilemapData();
+                    EditorUtility.SetDirty(Creator.gameObject);
+                }
             }
 
             using (new GUILayout.HorizontalScope())
@@ -574,6 +642,7 @@ namespace Unity.Tilemaps
                 if (GUILayout.Button("Tiles"))
                 {
                     Creator.BuildTileObject();
+                    EditorUtility.SetDirty(Creator.gameObject);
                 }
 
                 //selectedSide = (TileSideType)EditorGUILayout.EnumPopup(selectedSide);
@@ -597,15 +666,24 @@ namespace Unity.Tilemaps
                 if (GUILayout.Button("Decorates"))
                 {
                     Creator.BuildDecorateObject();
-
+                    EditorUtility.SetDirty(Creator.gameObject);
                 }
 
             }
 
-
-            if (GUILayout.Button("Clear"))
+            using (new GUILayout.HorizontalScope())
             {
-                Creator.Clear();
+                if (GUILayout.Button("Clear"))
+                {
+                    Creator.Clear();
+                    EditorUtility.SetDirty(Creator.gameObject);
+                }
+                if (GUILayout.Button("Clear Object"))
+                {
+                    Creator.ClearTileObject();
+                    Creator.ClearDecorateObject();
+                    EditorUtility.SetDirty(Creator.gameObject);
+                }
             }
 
             using (new GUILayout.HorizontalScope())
@@ -770,6 +848,7 @@ namespace Unity.Tilemaps
                     EditorGUILayout.PropertyField(settings.FindProperty("gridColor"), new GUIContent("Grid Color"));
                     EditorGUILayout.PropertyField(settings.FindProperty("gridCenterColor"), new GUIContent("Grid Center Color"));
                     EditorGUILayout.PropertyField(settings.FindProperty("hoverColor"), new GUIContent("Hover Color"));
+                    EditorGUILayout.PropertyField(settings.FindProperty("fillSize"), new GUIContent("Fill Size", "笔刷填充大小"));
                 }
                 EditorGUI.indentLevel--;
 
@@ -799,7 +878,7 @@ namespace Unity.Tilemaps
             if (settings == null)
             {
                 settings = ScriptableObject.CreateInstance<TilemapEditorSettings>();
-          
+
 
                 if (!Directory.Exists(Path.GetDirectoryName(TilemapEditorSettingsPath)))
                     Directory.CreateDirectory(Path.GetDirectoryName(TilemapEditorSettingsPath));

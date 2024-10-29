@@ -10,6 +10,7 @@ namespace Unity.Tilemaps
     [Serializable]
     public class TileAlgorithm
     {
+        [NonSerialized]
         public CreateTileObjectCallbackDelagate CreateTileObjectCallback;
 
         public virtual List<GameObject> Generate(TilemapCreator creator, Tilemap tilemap, TilemapData map, Transform parent, TilemapLayer layer, TileGroup[] tiles, float scale)
@@ -81,6 +82,7 @@ namespace Unity.Tilemaps
                     position = position,
                     rotation = rotation,
                     scale = scale,
+                    objectType = TileObjectType.Tile
                 };
 
                 if (Application.isPlaying)
@@ -93,7 +95,11 @@ namespace Unity.Tilemaps
                 }
             }
             if (go)
+            {
+                if (creator)
+                    creator.AddObject(TileObjectType.Tile, go);
                 return go.transform;
+            }
             return null;
         }
 

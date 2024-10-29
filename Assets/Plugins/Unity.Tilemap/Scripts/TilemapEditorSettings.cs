@@ -22,6 +22,10 @@ namespace Unity.Tilemaps
         public Color groundColor = new Color(0f, 0f, 0f, 0.5f);
         public Color closedBlockNumberColor = new Color(1, 1, 1, 0.5f);
 
+        /// <summary>
+        /// 笔刷大小
+        /// </summary>
+        public int fillSize = 1;
 
         //const string TilemapEditorSettingsPath = "Assets/Editor/Settings/TilemapEditorSettings.asset";
         //private static TilemapEditorSettings instance;

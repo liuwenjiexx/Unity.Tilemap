@@ -69,6 +69,16 @@ namespace Unity.Tilemaps
             }
         }
 
+        public bool this[Vector2Int cell]
+        {
+            get { return data[cell.y * width + cell.x]; }
+            set
+            {
+                if (IsValidPoint(cell))
+                    data[cell.y * width + cell.x] = value;
+            }
+        }
+
         public int Width { get => width; }
         public int Height { get => height; }
 
@@ -102,7 +112,10 @@ namespace Unity.Tilemaps
                 return false;
             return IsValidPoint(x + blockWidth - 1, y + blockHeight - 1);
         }
-
+        public bool IsValidPoint(Vector2Int cell)
+        {
+            return IsValidPoint(cell.x, cell.y);
+        }
         public void SetBlock(int x, int y, bool isBlock)
         {
             this[x, y] = isBlock ? BLOCK : !BLOCK;
@@ -412,12 +425,10 @@ namespace Unity.Tilemaps
             } while (n > 0);
         }
 
-        public void ClipInvalidTileType(TilemapData mask)
-        {
-            ClipInvalidTileType(0, 0, width, height, mask);
-        }
-
-        public void ClipInvalidTileType(int x, int y, int blockWidth, int blockHeight, TilemapData mask)
+        /// <summary>
+        /// 清除错误类型的块
+        /// </summary>
+        public void ClearInvalidBlock(int x, int y, int blockWidth, int blockHeight, TilemapData mask)
         {
             TileFlags sideTileType;
             TileType tileType;
@@ -507,6 +518,11 @@ namespace Unity.Tilemaps
                 }
             } while (n > 0);
 
+        }
+
+        public void ClearInvalidBlock(TilemapData mask)
+        {
+            ClearInvalidBlock(0, 0, width, height, mask);
         }
 
         public void ClipMarginBlock(TilemapData mask, int size = 2)
@@ -619,11 +635,9 @@ namespace Unity.Tilemaps
             }
         }
 
-        public void AliginBlock(int aliginWidth, int aliginHeight, bool value)
-        {
-            AliginBlock(0, 0, width, height, aliginWidth, aliginHeight, value);
-        }
-
+        /// <summary>
+        /// 将地图按对齐大小划分为对齐单位区域，如果单位区域内有块，则单位区域全部设置为块
+        /// </summary>
         public void AliginBlock(int x, int y, int blockWidth, int blockHeight, int aliginWidth, int aliginHeight, bool value)
         {
             int _x, _y;
@@ -651,6 +665,11 @@ namespace Unity.Tilemaps
                     }
                 }
             }
+        }
+
+        public void AliginBlock(int aliginWidth, int aliginHeight, bool value)
+        {
+            AliginBlock(0, 0, width, height, aliginWidth, aliginHeight, value);
         }
 
         public bool TestValidBlock(int x, int y, int blockWidth, int blockHeight, int space = 2)
@@ -892,6 +911,27 @@ namespace Unity.Tilemaps
                     }
                 }
             }
+        }
+
+        public int ClampX(int x)
+        {
+            if (x < 0)
+                return 0;
+            if (x >= width)
+                return width - 1;
+            return x;
+        }
+        public int ClampY(int y)
+        {
+            if (y < 0)
+                return 0;
+            if (y >= height)
+                return height - 1;
+            return y;
+        }
+        public Vector2Int ClampCell(Vector2Int cell)
+        {
+            return new Vector2Int(ClampX(cell.x), ClampY(cell.y));
         }
     }
 

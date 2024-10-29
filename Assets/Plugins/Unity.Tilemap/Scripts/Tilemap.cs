@@ -9,6 +9,7 @@ namespace Unity.Tilemaps
     //[CreateAssetMenu(fileName = "Tilemap", menuName = "Tilemap/Tilemap")]
     public class Tilemap : ScriptableObject
     {
+        public string id;
         public int width;
         public int height;
         [Range(0.1f, 10f)]

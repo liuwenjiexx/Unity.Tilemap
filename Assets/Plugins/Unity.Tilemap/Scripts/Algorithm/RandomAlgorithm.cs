@@ -12,7 +12,7 @@ namespace Unity.Tilemaps
         public float fillRate = 0.5f;
         public int blockWidth = 2;
         public int blockHeight = 2;
-        public RectOffsetSerializable margin;
+        public RectOffsetSerializable margin = new();
 
         public override void Generate(TilemapData map, TilemapData mask, out Vector3 startPosition, out Vector3 endPosition)
         {

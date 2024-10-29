@@ -6,6 +6,7 @@ using System.Linq;
 using System.IO;
 using System;
 using System.Reflection;
+using UnityEditor.GUIExtensions;
 
 namespace Unity.Tilemaps
 {
@@ -167,15 +168,12 @@ namespace Unity.Tilemaps
                     serializedObject.UpdateIfRequiredOrScript();
                 }
             }
-            using (var checker = new EditorGUI.ChangeCheckScope())
-            {
-                GUILayout.Label("Tiles");
-                EditorGUI.indentLevel++;
 
-                using (new GUILayout.HorizontalScope())
+            using (var header = new EditorGUILayoutx.Scopes.FoldoutHeaderGroupScope(false, new GUIContent($"Tiles ({config.tiles.Length})")))
+            {
+                if (header.Visiable)
                 {
-                    GUILayout.Space(EditorGUI.indentLevel * 15);
-                    using (new GUILayout.VerticalScope())
+                    using (var checker = new EditorGUI.ChangeCheckScope())
                     {
                         foreach (var tileGroup in GetTileGroups())
                         {
@@ -183,7 +181,7 @@ namespace Unity.Tilemaps
                             {
                                 using (new GUILayout.HorizontalScope())
                                 {
-                                    GUILayout.Label(string.Format("Tile Group: {0}", tileGroup));
+                                    GUILayout.Label(string.Format("tile group {0}", tileGroup));
                                     GUILayout.FlexibleSpace();
                                     if (GUILayout.Button("+", "label"))
                                     {
@@ -198,7 +196,7 @@ namespace Unity.Tilemaps
                                     var tile = config.tiles[i];
                                     if (tile.group != tileGroup)
                                         continue;
-                                    if (GUILayout.Button("Tile: " + displayIndex, "label"))
+                                    if (GUILayout.Button("tile " + displayIndex, "label"))
                                     {
                                         GenericMenu menu = new GenericMenu();
                                         menu.AddItem(new GUIContent("Delete Tile: " + displayIndex), false, (o) =>
@@ -209,37 +207,35 @@ namespace Unity.Tilemaps
                                          }, i);
                                         menu.ShowAsContext();
                                     }
-
-                                    //using (new GUILayout.HorizontalScope())
-                                    //{
-                                    //    tile.tileEdge = DrawTileItems(tile, tile.tileEdge, TileType.Edge);
-                                    //    tile.tileOuterCorner = DrawTileItems(tile, tile.tileOuterCorner, TileType.OuterCorner);
-                                    //    tile.tileInnerCorner = DrawTileItems(tile, tile.tileInnerCorner, TileType.InnerCorner);
-                                    //    tile.tileBlock = DrawTileItems(tile, tile.tileBlock, TileType.Block);
-                                    //    tile.tileGround = DrawTileItems(tile, tile.tileGround, TileType.Ground);
-                                    //}
-                                    tile.tile = EditorGUILayout.ObjectField("Tile", tile.tile, typeof(Tile), false) as Tile;
-                                    //tile.offset = EditorGUILayout.Vector3Field("Offset", tile.offset);
-                                    //tile.blockOffset = EditorGUILayout.Vector3Field("Block Offset", tile.blockOffset);
-                                    //tile.groundOffset = EditorGUILayout.Vector3Field("Ground Offset", tile.groundOffset);
-                                    tile.weight = EditorGUILayout.DelayedFloatField("Weight", tile.weight);
-                                    tile.group = EditorGUILayout.DelayedIntField("Group", tile.group);
-                                    displayIndex++;
+                                    using (new EditorGUILayoutx.Scopes.IndentLevelVerticalScope())
+                                    {
+                                        //using (new GUILayout.HorizontalScope())
+                                        //{
+                                        //    tile.tileEdge = DrawTileItems(tile, tile.tileEdge, TileType.Edge);
+                                        //    tile.tileOuterCorner = DrawTileItems(tile, tile.tileOuterCorner, TileType.OuterCorner);
+                                        //    tile.tileInnerCorner = DrawTileItems(tile, tile.tileInnerCorner, TileType.InnerCorner);
+                                        //    tile.tileBlock = DrawTileItems(tile, tile.tileBlock, TileType.Block);
+                                        //    tile.tileGround = DrawTileItems(tile, tile.tileGround, TileType.Ground);
+                                        //}
+                                        tile.tile = EditorGUILayout.ObjectField("Tile", tile.tile, typeof(Tile), false) as Tile;
+                                        //tile.offset = EditorGUILayout.Vector3Field("Offset", tile.offset);
+                                        //tile.blockOffset = EditorGUILayout.Vector3Field("Block Offset", tile.blockOffset);
+                                        //tile.groundOffset = EditorGUILayout.Vector3Field("Ground Offset", tile.groundOffset);
+                                        tile.weight = EditorGUILayout.DelayedFloatField("Weight", tile.weight);
+                                        tile.group = EditorGUILayout.DelayedIntField("Group", tile.group);
+                                        displayIndex++;
+                                    }
                                 }
                             }
                         }
 
+                        if (checker.changed && !Application.isPlaying)
+                        {
+                            EditorUtility.SetDirty(serializedObject.targetObject);
+                            serializedObject.UpdateIfRequiredOrScript();
+                            GUI.changed = false;
+                        }
                     }
-
-                }
-
-                EditorGUI.indentLevel--;
-
-                if (checker.changed && !Application.isPlaying)
-                {
-                    EditorUtility.SetDirty(serializedObject.targetObject);
-                    serializedObject.UpdateIfRequiredOrScript();
-                    GUI.changed = false;
                 }
             }
         }
@@ -339,7 +335,7 @@ namespace Unity.Tilemaps
 
             using (new GUILayout.HorizontalScope())
             {
-                EditorGUILayout.PrefixLabel("Layers");
+                EditorGUILayout.PrefixLabel($"Layers ({layers.Length})");
                 GUILayout.FlexibleSpace();
                 if (GUILayout.Button("+", "label", GUILayout.ExpandWidth(false)))
                 {
@@ -355,252 +351,263 @@ namespace Unity.Tilemaps
                     GUI.changed = true;
                 }
             }
-            EditorGUI.indentLevel++;
+
             int[] tileGroups = GetTileGroups();
             GUIContent[] tileGroupContents = tileGroups.Select(o => new GUIContent(o.ToString())).ToArray();
 
-            for (int i = 0; i < layers.Length; i++)
+            using (new EditorGUILayoutx.Scopes.IndentLevelVerticalScope())
             {
-                var layer = layers[i];
-                using (new GUILayout.HorizontalScope())
+                for (int i = 0; i < layers.Length; i++)
                 {
-                    GUILayout.Space(EditorGUI.indentLevel * 15);
-                    EditorGUI.indentLevel--;
-
-                    using (new GUILayout.VerticalScope("box"))
+                    var layer = layers[i];
+                    using (new GUILayout.HorizontalScope())
                     {
-                        if (TilemapCreator.selectedLayerIndex == i)
-                        {
-                            GUI.backgroundColor = new Color(0.5f, 0.5f, 0f, 1f);
-                        }
-                        else
-                        {
-                            GUI.backgroundColor = Color.white;
-                        }
-                        using (new GUILayout.HorizontalScope())
-                        {
-                            layer.enabled = EditorGUILayout.ToggleLeft(string.Format("Layer {0}", i), layer.enabled, GUILayout.ExpandWidth(false));
-
-
-                            if (GUILayout.Button("Active", GUILayout.ExpandWidth(false)))
-                            {
-                                if (TilemapCreator.selectedLayerIndex == i)
-                                {
-                                    TilemapCreatorEditor.SelectLayer(-1);
-                                }
-                                else
-                                {
-                                    TilemapCreatorEditor.SelectLayer(i);
-                                }
-                            }
-
-                            GUILayout.FlexibleSpace();
-                            if (GUILayout.Button("◥", "label"))
-                            {
-                                GenericMenu menu = new GenericMenu();
-                                if (i > 0)
-                                {
-                                    menu.AddItem(new GUIContent("Move Up"), false, (o) =>
-                                    {
-                                        int itemIndex = (int)o;
-                                        layers.Swap(itemIndex, itemIndex - 1);
-                                        GUI.changed = true;
-                                    }, i);
-                                }
-                                else
-                                {
-                                    menu.AddDisabledItem(new GUIContent("Move Up"), false);
-                                }
-                                if (i < layers.Length - 1)
-                                {
-                                    menu.AddItem(new GUIContent("Move Down"), false, (o) =>
-                                    {
-                                        int itemIndex = (int)o;
-                                        layers.Swap(itemIndex, itemIndex + 1);
-                                        GUI.changed = true;
-                                    }, i);
-                                }
-                                else
-                                {
-                                    menu.AddDisabledItem(new GUIContent("Move Down"), false);
-                                }
-                                if (layers.Length > 0)
-                                {
-                                    menu.AddItem(new GUIContent("Delete"), false, (o) =>
-                                     {
-                                         int itemIndex = (int)o;
-                                         layers = layers.DeleteArrayElementAtIndex(itemIndex);
-                                         config.layers = layers;
-                                         GUI.changed = true;
-                                     }, i);
-                                }
-                                else
-                                {
-                                    menu.AddDisabledItem(new GUIContent("Delete"), false);
-
-                                }
-
-                                menu.ShowAsContext();
-                            }
-
-                        }
-
-                        GUI.backgroundColor = Color.white;
-
-                        var old = GUI.enabled;
-                        GUI.enabled = layer.enabled;
-
-
-                        using (new GUILayout.HorizontalScope())
-                        {
-                            EditorGUILayout.PrefixLabel("Note");
-                            layer.note = EditorGUILayout.TextArea(layer.note ?? string.Empty, GUILayout.MaxHeight(EditorGUIUtility.singleLineHeight * 2 - 4));
-                        }
-
-                        GUILayout.Label("Input");
-                        EditorGUI.indentLevel++;
-                        layer.input.mask = (MaskOperator)EditorGUILayout.EnumPopup("Mask", layer.input.mask);
-                        layer.input.maskToMap = (TilemapOperator)EditorGUILayout.EnumPopup(new GUIContent("Mask To Map", "Mask To Map"), layer.input.maskToMap);
                         EditorGUI.indentLevel--;
 
-                        int algorithmIndex = -1;
-                        if (layer.algorithm != null)
+                        using (new GUILayout.VerticalScope("box"))
                         {
-                            for (int j = 0; j < algorithmTypes.Length; j++)
+                            if (TilemapCreator.selectedLayerIndex == i)
                             {
-                                if (algorithmTypes[j].type == layer.algorithm.GetType())
-                                {
-                                    algorithmIndex = j;
-                                    break;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            for (int j = 0; j < algorithmTypes.Length; j++)
-                            {
-                                if (algorithmTypes[j].type == null)
-                                {
-                                    algorithmIndex = j;
-                                    break;
-                                }
-                            }
-                        }
-
-
-                        GUIContent[] displays;
-                        displays = algorithmTypes.Select(o => o.displayName).ToArray();
-
-                        int newAlgorithmIndex = EditorGUILayout.Popup(new GUIContent("Algrithm"), algorithmIndex, displays);
-                        if (newAlgorithmIndex != algorithmIndex)
-                        {
-                            if (newAlgorithmIndex < 0 || algorithmTypes[newAlgorithmIndex].type == null)
-                            {
-                                if (layer.algorithm != null)
-                                {
-                                    layer.algorithm = null;
-                                    GUI.changed = true;
-                                }
+                                GUI.backgroundColor = new Color(0.5f, 0.5f, 0f, 1f);
                             }
                             else
                             {
-                                Type type = algorithmTypes[newAlgorithmIndex].type;
-
-                                layer.algorithm = Activator.CreateInstance(type) as BlockAlgorithm;
-                                GUI.changed = true;
+                                GUI.backgroundColor = Color.white;
                             }
-                        }
-
-                        if (layer.algorithm != null && layer.algorithm.GetType() != typeof(BlockAlgorithm))
-                        {
-
-                            using (new GUILayout.HorizontalScope())
+                            if (!layer.enabled)
                             {
-                                GUILayout.Space((EditorGUI.indentLevel + 1) * 15);
-                                using (new GUILayout.VerticalScope("box"))
-                                {
-                                    var algorithmProp = layersProperty.GetArrayElementAtIndex(i).FindPropertyRelative("algorithm");
-
-                                    // EditorGUI.indentLevel--;
-                                    //GUILayoutObject(algorithmProp);
-                                    CustomFieldEditor.GUIObject(algorithmProp);
-
-                                    // EditorGUI.indentLevel++;
-                                }
-
+                                GUI.contentColor = Color.gray;
                             }
-
-                        }
-
-                        int selectedIndex = Array.IndexOf(tileGroups, layer.tileGroup);
-                        var newIndex = EditorGUILayout.Popup(new GUIContent("Tile"), selectedIndex, tileGroupContents);
-                        if (newIndex != selectedIndex)
-                        {
-                            if (newIndex != -1)
-                                layer.tileGroup = tileGroups[newIndex];
-                            else
-                                layer.tileGroup = 0;
-                        }
-
-
-                        layer.tileAlgorithm = (TileAlgorithm)new GUIContent("Tile Algorithm").TypePopup(layer.tileAlgorithm, typeof(TileAlgorithm),
-                            (t) =>
-                            {
-                                string name = t.Name;
-                                foreach (var part in new string[] { "TileAlgorithm", "Algorithm" })
+                            using (var header = new EditorGUILayoutx.Scopes.FoldoutHeaderGroupScope(false, new GUIContent($"layer {i} {layer.note}"),
+                                onGUI: () =>
                                 {
-                                    if (name.EndsWith(part, StringComparison.InvariantCultureIgnoreCase))
+
+                                    if (GUILayout.Button("Active", GUILayout.ExpandWidth(false)))
                                     {
-                                        name = name.Substring(0, name.Length - part.Length);
-                                        break;
+                                        if (TilemapCreator.selectedLayerIndex == i)
+                                        {
+                                            TilemapCreatorEditor.SelectLayer(-1);
+                                        }
+                                        else
+                                        {
+                                            TilemapCreatorEditor.SelectLayer(i);
+                                        }
                                     }
-                                }
 
-                                return name;
-                            });
+                                    //GUILayout.FlexibleSpace();
+                                    if (GUILayout.Button("◥", "label", GUILayout.ExpandWidth(false)))
+                                    {
+                                        GenericMenu menu = new GenericMenu();
+                                        if (i > 0)
+                                        {
+                                            menu.AddItem(new GUIContent("Move Up"), false, (o) =>
+                                           {
+                                               int itemIndex = (int)o;
+                                               layers.Swap(itemIndex, itemIndex - 1);
+                                               GUI.changed = true;
+                                           }, i);
+                                        }
+                                        else
+                                        {
+                                            menu.AddDisabledItem(new GUIContent("Move Up"), false);
+                                        }
+                                        if (i < layers.Length - 1)
+                                        {
+                                            menu.AddItem(new GUIContent("Move Down"), false, (o) =>
+                                           {
+                                               int itemIndex = (int)o;
+                                               layers.Swap(itemIndex, itemIndex + 1);
+                                               GUI.changed = true;
+                                           }, i);
+                                        }
+                                        else
+                                        {
+                                            menu.AddDisabledItem(new GUIContent("Move Down"), false);
+                                        }
+                                        if (layers.Length > 0)
+                                        {
+                                            menu.AddItem(new GUIContent("Delete"), false, (o) =>
+                                           {
+                                               int itemIndex = (int)o;
+                                               layers = layers.DeleteArrayElementAtIndex(itemIndex);
+                                               config.layers = layers;
+                                               GUI.changed = true;
+                                           }, i);
+                                        }
+                                        else
+                                        {
+                                            menu.AddDisabledItem(new GUIContent("Delete"), false);
 
-                        if (layer.tileAlgorithm != null && layer.tileAlgorithm.GetType() != typeof(TileAlgorithm))
-                        {
-                            using (new GUILayout.HorizontalScope())
+                                        }
+
+                                        menu.ShowAsContext();
+                                    }
+
+                                }))
                             {
-                                EditorGUI.indentLevel++;
-                                //  GUILayout.Space((EditorGUI.indentLevel + 1) * 15);
-                                //  using (new GUILayout.VerticalScope("box"))
+                                GUI.contentColor = Color.white;
+                                GUI.backgroundColor = Color.white;
+                                if (header.Visiable)
                                 {
-                                    CustomFieldEditor.GUIObject(layersProperty.GetArrayElementAtIndex(i).FindPropertyRelative("tileAlgorithm"));
+
+                                    layer.enabled = EditorGUILayout.Toggle("Enabled", layer.enabled, GUILayout.ExpandWidth(false));
+
+                                    var old = GUI.enabled;
+                                    GUI.enabled = old & layer.enabled;
+
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        EditorGUILayout.PrefixLabel("Note");
+                                        layer.note = EditorGUILayout.TextArea(layer.note ?? string.Empty, GUILayout.MaxHeight(EditorGUIUtility.singleLineHeight * 2 - 4));
+                                    }
+
+                                    GUILayout.Label("Input");
+                                    EditorGUI.indentLevel++;
+                                    layer.input.mask = (MaskOperator)EditorGUILayout.EnumPopup("Mask", layer.input.mask);
+                                    layer.input.maskToMap = (TilemapOperator)EditorGUILayout.EnumPopup(new GUIContent("Mask To Map", "Mask To Map"), layer.input.maskToMap);
+                                    EditorGUI.indentLevel--;
+
+                                    int algorithmIndex = -1;
+                                    if (layer.algorithm != null)
+                                    {
+                                        for (int j = 0; j < algorithmTypes.Length; j++)
+                                        {
+                                            if (algorithmTypes[j].type == layer.algorithm.GetType())
+                                            {
+                                                algorithmIndex = j;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        for (int j = 0; j < algorithmTypes.Length; j++)
+                                        {
+                                            if (algorithmTypes[j].type == null)
+                                            {
+                                                algorithmIndex = j;
+                                                break;
+                                            }
+                                        }
+                                    }
+
+
+                                    GUIContent[] displays;
+                                    displays = algorithmTypes.Select(o => o.displayName).ToArray();
+
+                                    int newAlgorithmIndex = EditorGUILayout.Popup(new GUIContent("Algrithm"), algorithmIndex, displays);
+                                    if (newAlgorithmIndex != algorithmIndex)
+                                    {
+                                        if (newAlgorithmIndex < 0 || algorithmTypes[newAlgorithmIndex].type == null)
+                                        {
+                                            if (layer.algorithm != null)
+                                            {
+                                                layer.algorithm = null;
+                                                GUI.changed = true;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Type type = algorithmTypes[newAlgorithmIndex].type;
+
+                                            layer.algorithm = Activator.CreateInstance(type) as BlockAlgorithm;
+                                            GUI.changed = true;
+                                        }
+                                    }
+
+                                    if (layer.algorithm != null && layer.algorithm.GetType() != typeof(BlockAlgorithm))
+                                    {
+
+                                        using (new GUILayout.HorizontalScope())
+                                        {
+                                            GUILayout.Space((EditorGUI.indentLevel + 1) * 15);
+                                            using (new GUILayout.VerticalScope("box"))
+                                            {
+                                                var algorithmProp = layersProperty.GetArrayElementAtIndex(i).FindPropertyRelative("algorithm");
+
+                                                // EditorGUI.indentLevel--;
+                                                //GUILayoutObject(algorithmProp);
+                                                CustomFieldEditor.GUIObject(algorithmProp);
+
+                                                // EditorGUI.indentLevel++;
+                                            }
+
+                                        }
+
+                                    }
+
+                                    int selectedIndex = Array.IndexOf(tileGroups, layer.tileGroup);
+                                    var newIndex = EditorGUILayout.Popup(new GUIContent("Tile"), selectedIndex, tileGroupContents);
+                                    if (newIndex != selectedIndex)
+                                    {
+                                        if (newIndex != -1)
+                                            layer.tileGroup = tileGroups[newIndex];
+                                        else
+                                            layer.tileGroup = 0;
+                                    }
+
+
+                                    layer.tileAlgorithm = (TileAlgorithm)new GUIContent("Tile Algorithm").TypePopup(layer.tileAlgorithm, typeof(TileAlgorithm),
+                                        (t) =>
+                                        {
+                                            string name = t.Name;
+                                            foreach (var part in new string[] { "TileAlgorithm", "Algorithm" })
+                                            {
+                                                if (name.EndsWith(part, StringComparison.InvariantCultureIgnoreCase))
+                                                {
+                                                    name = name.Substring(0, name.Length - part.Length);
+                                                    break;
+                                                }
+                                            }
+
+                                            return name;
+                                        });
+
+                                    if (layer.tileAlgorithm != null && layer.tileAlgorithm.GetType() != typeof(TileAlgorithm))
+                                    {
+                                        using (new GUILayout.HorizontalScope())
+                                        {
+                                            EditorGUI.indentLevel++;
+                                            //  GUILayout.Space((EditorGUI.indentLevel + 1) * 15);
+                                            //  using (new GUILayout.VerticalScope("box"))
+                                            {
+                                                CustomFieldEditor.GUIObject(layersProperty.GetArrayElementAtIndex(i).FindPropertyRelative("tileAlgorithm"));
+                                            }
+                                            EditorGUI.indentLevel--;
+
+                                        }
+                                    }
+                                    layer.tileBlockSize = EditorGUILayout.DelayedIntField("Tile Block Size", layer.tileBlockSize);
+
+
+
+
+                                    layer.offsetHeight = EditorGUILayout.DelayedFloatField("Offset Height", layer.offsetHeight);
+
+                                    layer.flags = (TilemapLayerFlags)EditorGUILayout.EnumFlagsField("Flags", layer.flags);
+
+
+                                    GUILayout.Label("Output");
+                                    EditorGUI.indentLevel++;
+                                    layer.output.mapToMask = (TilemapOperator)EditorGUILayout.EnumPopup(new GUIContent("Map To Mask", "Map To Mask"), layer.output.mapToMask);
+                                    layer.output.mask = (MaskOperator)EditorGUILayout.EnumPopup("Mask", layer.output.mask);
+                                    EditorGUI.indentLevel--;
+
+                                    if (layer.decorates != null)
+                                        DrawDecorates(layer, layersProperty.GetArrayElementAtIndex(i).FindPropertyRelative("decorates"));
+
+
+                                    GUI.enabled = old;
                                 }
-                                EditorGUI.indentLevel--;
-
                             }
+
                         }
-                        layer.tileBlockSize = EditorGUILayout.DelayedIntField("Tile Block Size", layer.tileBlockSize);
 
-
-
-
-                        layer.offsetHeight = EditorGUILayout.DelayedFloatField("Offset Height", layer.offsetHeight);
-
-                        layer.flags = (TilemapLayerFlags)EditorGUILayout.EnumFlagsField("Flags", layer.flags);
-
-
-                        GUILayout.Label("Output");
                         EditorGUI.indentLevel++;
-                        layer.output.mapToMask = (TilemapOperator)EditorGUILayout.EnumPopup(new GUIContent("Map To Mask", "Map To Mask"), layer.output.mapToMask);
-                        layer.output.mask = (MaskOperator)EditorGUILayout.EnumPopup("Mask", layer.output.mask);
-                        EditorGUI.indentLevel--;
-
-                        if (layer.decorates != null)
-                            DrawDecorates(layer, layersProperty.GetArrayElementAtIndex(i).FindPropertyRelative("decorates"));
-
-
-                        GUI.enabled = old;
                     }
-
-                    EditorGUI.indentLevel++;
                 }
             }
 
-            EditorGUI.indentLevel--;
         }
 
 
@@ -647,13 +654,9 @@ namespace Unity.Tilemaps
 
                     using (new GUILayout.VerticalScope("box"))
                     {
-
-                        using (new GUILayout.HorizontalScope())
+                        using (var header = new EditorGUILayoutx.Scopes.FoldoutHeaderGroupScope(false, new GUIContent($"{i} {(decorate.enabled ? "" : "(disabled)")}"), onGUI: () =>
                         {
-                            decorate.enabled = EditorGUILayout.ToggleLeft(string.Format("{0}", i), decorate.enabled, GUILayout.ExpandWidth(false));
-
-                            GUILayout.FlexibleSpace();
-                            if (GUILayout.Button("◥", "label"))
+                            if (GUILayout.Button("◥", "label", GUILayout.ExpandWidth(false)))
                             {
                                 GenericMenu menu = new GenericMenu();
                                 if (i > 0)
@@ -699,107 +702,110 @@ namespace Unity.Tilemaps
 
                                 menu.ShowAsContext();
                             }
-
-                        }
-
-                        decorate.prefab = EditorGUILayout.ObjectField("Prefab", decorate.prefab, typeof(GameObject), false) as GameObject;
-                        decorate.offset = EditorGUILayout.Vector3Field("Offset", decorate.offset);
-                        decorate.offsetRotation = EditorGUILayout.Vector3Field("Offset Rotation", decorate.offsetRotation);
-                        decorate.useTileRotation = EditorGUILayout.Toggle("Use Tile Rotation", decorate.useTileRotation);
-
-                        decorate.useRandomOffset = EditorGUILayout.Toggle("Random Offset", decorate.useRandomOffset);
-                        if (decorate.useRandomOffset)
+                        }))
                         {
-                            EditorGUI.indentLevel++;
-                            decorate.minRandomOffset = EditorGUILayout.Vector3Field("Min", decorate.minRandomOffset);
-                            decorate.maxRandomOffset = EditorGUILayout.Vector3Field("Max", decorate.maxRandomOffset);
-                            EditorGUI.indentLevel--;
-                        }
-
-                        decorate.useRandomRotation = EditorGUILayout.Toggle("Random Rotation", decorate.useRandomRotation);
-                        if (decorate.useRandomRotation)
-                        {
-                            EditorGUI.indentLevel++;
-                            decorate.minRandomRotation = EditorGUILayout.Vector3Field("Min", decorate.minRandomRotation);
-                            decorate.maxRandomRotation = EditorGUILayout.Vector3Field("Max", decorate.maxRandomRotation);
-                            EditorGUI.indentLevel--;
-                        }
-
-                        decorate.useRandomScale = EditorGUILayout.Toggle("Random Scale", decorate.useRandomScale);
-                        if (decorate.useRandomScale)
-                        {
-                            EditorGUI.indentLevel++;
-                            decorate.minRandomScale = EditorGUILayout.FloatField("Min", decorate.minRandomScale);
-                            decorate.maxRandomScale = EditorGUILayout.FloatField("Max", decorate.maxRandomScale);
-                            EditorGUI.indentLevel--;
-                        }
-
-
-
-                        int algorithmIndex = -1;
-
-                        Type algorithmType = null;
-
-
-                        if (decorate.algorithm != null)
-                        {
-                            algorithmType = decorate.algorithm.GetType();
-
-                        }
-                        for (int j = 0; j < DecorateAlgorithmTypes.Length; j++)
-                        {
-                            if (DecorateAlgorithmTypes[j].type == algorithmType)
+                            if (header.Visiable)
                             {
-                                algorithmIndex = j;
-                                break;
-                            }
-                        }
-                        GUIContent[] displays;
-                        displays = DecorateAlgorithmTypes.Select(o => o.displayName).ToArray();
+                                decorate.enabled = EditorGUILayout.Toggle("Enabled", decorate.enabled, GUILayout.ExpandWidth(false));
+                                decorate.prefab = EditorGUILayout.ObjectField("Prefab", decorate.prefab, typeof(GameObject), false) as GameObject;
+                                decorate.offset = EditorGUILayout.Vector3Field("Offset", decorate.offset);
+                                decorate.offsetRotation = EditorGUILayout.Vector3Field("Offset Rotation", decorate.offsetRotation);
+                                decorate.useTileRotation = EditorGUILayout.Toggle("Use Tile Rotation", decorate.useTileRotation);
 
-                        int newAlgorithmIndex = EditorGUILayout.Popup(new GUIContent("Algrithm"), algorithmIndex, displays);
-                        if (newAlgorithmIndex != algorithmIndex)
-                        {
-                            if (newAlgorithmIndex < 0 || DecorateAlgorithmTypes[newAlgorithmIndex].type == null)
-                            {
+                                decorate.useRandomOffset = EditorGUILayout.Toggle("Random Offset", decorate.useRandomOffset);
+                                if (decorate.useRandomOffset)
+                                {
+                                    EditorGUI.indentLevel++;
+                                    decorate.minRandomOffset = EditorGUILayout.Vector3Field("Min", decorate.minRandomOffset);
+                                    decorate.maxRandomOffset = EditorGUILayout.Vector3Field("Max", decorate.maxRandomOffset);
+                                    EditorGUI.indentLevel--;
+                                }
+
+                                decorate.useRandomRotation = EditorGUILayout.Toggle("Random Rotation", decorate.useRandomRotation);
+                                if (decorate.useRandomRotation)
+                                {
+                                    EditorGUI.indentLevel++;
+                                    decorate.minRandomRotation = EditorGUILayout.Vector3Field("Min", decorate.minRandomRotation);
+                                    decorate.maxRandomRotation = EditorGUILayout.Vector3Field("Max", decorate.maxRandomRotation);
+                                    EditorGUI.indentLevel--;
+                                }
+
+                                decorate.useRandomScale = EditorGUILayout.Toggle("Random Scale", decorate.useRandomScale);
+                                if (decorate.useRandomScale)
+                                {
+                                    EditorGUI.indentLevel++;
+                                    decorate.minRandomScale = EditorGUILayout.FloatField("Min", decorate.minRandomScale);
+                                    decorate.maxRandomScale = EditorGUILayout.FloatField("Max", decorate.maxRandomScale);
+                                    EditorGUI.indentLevel--;
+                                }
+
+
+
+                                int algorithmIndex = -1;
+
+                                Type algorithmType = null;
+
+
                                 if (decorate.algorithm != null)
                                 {
-                                    decorate.algorithm = null;
-                                    algorithmType = null;
-                                    GUI.changed = true;
+                                    algorithmType = decorate.algorithm.GetType();
+
                                 }
-                            }
-                            else
-                            {
-                                algorithmType = DecorateAlgorithmTypes[newAlgorithmIndex].type;
-
-                                decorate.algorithm = Activator.CreateInstance(algorithmType) as TilemapDecorateAlgorithm;
-                                GUI.changed = true;
-                            }
-                        }
-
-                        if (decorate.algorithm != null && algorithmType != typeof(TilemapDecorateAlgorithm))
-                        {
-
-                            using (new GUILayout.HorizontalScope())
-                            {
-                                GUILayout.Space((EditorGUI.indentLevel + 1) * 15);
-                                using (new GUILayout.VerticalScope("box"))
+                                for (int j = 0; j < DecorateAlgorithmTypes.Length; j++)
                                 {
-                                    var algorithmProp = decoratesProperty.GetArrayElementAtIndex(i).FindPropertyRelative("algorithm");
+                                    if (DecorateAlgorithmTypes[j].type == algorithmType)
+                                    {
+                                        algorithmIndex = j;
+                                        break;
+                                    }
+                                }
+                                GUIContent[] displays;
+                                displays = DecorateAlgorithmTypes.Select(o => o.displayName).ToArray();
 
-                                    // EditorGUI.indentLevel--;
-                                    //GUILayoutObject(algorithmProp);
-                                    CustomFieldEditor.GUIObject(algorithmProp);
+                                int newAlgorithmIndex = EditorGUILayout.Popup(new GUIContent("Algrithm"), algorithmIndex, displays);
+                                if (newAlgorithmIndex != algorithmIndex)
+                                {
+                                    if (newAlgorithmIndex < 0 || DecorateAlgorithmTypes[newAlgorithmIndex].type == null)
+                                    {
+                                        if (decorate.algorithm != null)
+                                        {
+                                            decorate.algorithm = null;
+                                            algorithmType = null;
+                                            GUI.changed = true;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        algorithmType = DecorateAlgorithmTypes[newAlgorithmIndex].type;
 
-                                    // EditorGUI.indentLevel++;
+                                        decorate.algorithm = Activator.CreateInstance(algorithmType) as TilemapDecorateAlgorithm;
+                                        GUI.changed = true;
+                                    }
+                                }
+
+                                if (decorate.algorithm != null && algorithmType != typeof(TilemapDecorateAlgorithm))
+                                {
+
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        GUILayout.Space((EditorGUI.indentLevel + 1) * 15);
+                                        using (new GUILayout.VerticalScope("box"))
+                                        {
+                                            var algorithmProp = decoratesProperty.GetArrayElementAtIndex(i).FindPropertyRelative("algorithm");
+
+                                            // EditorGUI.indentLevel--;
+                                            //GUILayoutObject(algorithmProp);
+                                            CustomFieldEditor.GUIObject(algorithmProp);
+
+                                            // EditorGUI.indentLevel++;
+                                        }
+
+                                    }
+
                                 }
 
                             }
-
                         }
-
-
                     }
                     EditorGUI.indentLevel++;
                 }
@@ -815,42 +821,41 @@ namespace Unity.Tilemaps
         {
             TilemapDataSettings dataSettings = Asset.data;
 
-            if (dataSettingsProperty.isExpanded = EditorGUILayout.Foldout(dataSettingsProperty.isExpanded, dataSettingsProperty.LabelContent(), true))
+            using (var group = new EditorGUILayoutx.Scopes.FoldoutHeaderGroupScope(false, new GUIContent("Data")))
             {
-                EditorGUI.indentLevel++;
-                dataSettings.provider = (TilemapDataProvider)new GUIContent("Provider").TypePopup(dataSettings.provider, typeof(TilemapDataProvider),
-                 (t) =>
-                    {
-                        string name = t.Name;
-                        foreach (var part in new string[] { "TilemapDataProvider", "DataProvider", "Provider" })
-                        {
-                            if (name.EndsWith(part, StringComparison.InvariantCultureIgnoreCase))
-                            {
-                                name = name.Substring(0, name.Length - part.Length);
-                                break;
-                            }
-                        }
-
-                        return name;
-                    });
-
-                if (dataSettings.provider != null && dataSettings.provider.GetType() != typeof(TilemapDataProvider))
+                if (group.Visiable)
                 {
-                    using (new GUILayout.HorizontalScope())
-                    {
-                        EditorGUI.indentLevel++;
-                        //  GUILayout.Space((EditorGUI.indentLevel + 1) * 15);
-                        //  using (new GUILayout.VerticalScope("box"))
+                    dataSettings.provider = (TilemapDataProvider)new GUIContent("Provider").TypePopup(dataSettings.provider, typeof(TilemapDataProvider),
+                     (t) =>
                         {
-                            CustomFieldEditor.GUIObject(dataSettingsProperty.FindPropertyRelative("provider"));
-                        }
-                        EditorGUI.indentLevel--;
+                            string name = t.Name;
+                            foreach (var part in new string[] { "TilemapDataProvider", "DataProvider", "Provider" })
+                            {
+                                if (name.EndsWith(part, StringComparison.InvariantCultureIgnoreCase))
+                                {
+                                    name = name.Substring(0, name.Length - part.Length);
+                                    break;
+                                }
+                            }
 
+                            return name;
+                        });
+
+                    if (dataSettings.provider != null && dataSettings.provider.GetType() != typeof(TilemapDataProvider))
+                    {
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            EditorGUI.indentLevel++;
+                            //  GUILayout.Space((EditorGUI.indentLevel + 1) * 15);
+                            //  using (new GUILayout.VerticalScope("box"))
+                            {
+                                CustomFieldEditor.GUIObject(dataSettingsProperty.FindPropertyRelative("provider"));
+                            }
+                            EditorGUI.indentLevel--;
+
+                        }
                     }
                 }
-
-
-                EditorGUI.indentLevel--;
             }
         }
 

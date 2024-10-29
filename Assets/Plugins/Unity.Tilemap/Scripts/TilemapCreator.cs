@@ -14,6 +14,7 @@ namespace Unity.Tilemaps
     {
         [SerializeField]
         private Tilemap tilemap;
+        public bool occlusion = true;
         public static int selectedLayerIndex = -1;
 
         public Tilemap Tilemap
@@ -40,6 +41,8 @@ namespace Unity.Tilemaps
 
         Transform root;
         public static TilemapData debugDrawMap;
+
+        public static List<TilemapCreator> all = new List<TilemapCreator>();
 
         public Transform Root
         {
@@ -71,6 +74,8 @@ namespace Unity.Tilemaps
 
         [NonSerialized]
         public List<GameObject> allTileObjects = new List<GameObject>();
+        [NonSerialized]
+        public List<GameObject> allDecorateObjects = new List<GameObject>();
 
         /// <summary>
         /// 定制实例化
@@ -78,6 +83,9 @@ namespace Unity.Tilemaps
         public InstantiateGameObjectDelegate InstantiateGameObject;
 
         public static Func<TilemapInstantiateData, GameObject> EditorInstantiateGameObject;
+        public static event Action<TilemapCreator> Added;
+        public static event Action<TilemapCreator> Removed;
+        public static event Action<TilemapCreator> ObjectsChanged;
 
         public delegate GameObject InstantiateGameObjectDelegate(TilemapInstantiateData instantiateData);
 
@@ -105,6 +113,38 @@ namespace Unity.Tilemaps
                 layersRoot.transform.localScale = Vector3.one;
             }
             return layersRoot;
+        }
+
+        public event Action<TilemapCreator, TileObjectType, GameObject> ObjectAdded;
+        public event Action<TilemapCreator, TileObjectType, GameObject> ObjectRemoved;
+
+        public void AddObject(TileObjectType objectType, GameObject go)
+        {
+            if (!go)
+                return;
+            if (objectType == TileObjectType.Decorate)
+            {
+                allDecorateObjects.Add(go);
+            }
+            else
+            {
+                allTileObjects.Add(go);
+            }
+            ObjectAdded?.Invoke(this, objectType, go);
+        }
+        public void RemoveObject(TileObjectType objectType, GameObject go)
+        {
+            if (!go)
+                return;
+            if (objectType == TileObjectType.Decorate)
+            {
+                allDecorateObjects.Remove(go);
+            }
+            else
+            {
+                allTileObjects.Remove(go);
+            }
+            ObjectRemoved?.Invoke(this, objectType, go);
         }
 
         //public Transform DecoratesRoot
@@ -136,7 +176,11 @@ namespace Unity.Tilemaps
                 return null;
             }
         }
-
+        private void Awake()
+        {
+            all.Add(this);
+            Added?.Invoke(this);
+        }
         // Start is called before the first frame update
         void Start()
         {
@@ -476,8 +520,13 @@ namespace Unity.Tilemaps
                     }
 
                     var items = tileAlgorithm.Generate(this, tilemap, map, tilesRoot, layer, tileGroups, config.scale);
-                    if (items != null)
-                        allTileObjects.AddRange(items);
+                    //if (items != null)
+                    //{
+                    //    foreach (var item in items)
+                    //    {
+                    //        AddObject(TileObjectType.Tile, item);
+                    //    }
+                    //}
                 }
             }
         }
@@ -487,25 +536,40 @@ namespace Unity.Tilemaps
         {
             if (allTileObjects != null)
             {
-                for (int i = 0; i < allTileObjects.Count; i++)
+                bool handled;
+
+                while (allTileObjects.Count > 0)
                 {
-                    var go = allTileObjects[i];
+                    var go = allTileObjects[allTileObjects.Count - 1];
                     if (go)
                     {
-                        if (DestroyGameObject == null || !DestroyGameObject(go))
+                        handled = false;
+
+                        RemoveObject(TileObjectType.Tile, go);
+                        if (DestroyGameObject != null)
+                        {
+                            if (DestroyGameObject(go))
+                            {
+                                handled = true;
+                            }
+                        }
+                        if (!handled)
                         {
                             DestroyImmediate(go);
                         }
                     }
                 }
-                allTileObjects.Clear();
+
             }
+
             for (int layerIndex = 0; layerIndex < Tilemap.layers.Length; layerIndex++)
             {
                 var tilesRoot = GetTilesRoot(layerIndex);
                 while (tilesRoot.childCount > 0)
                 {
-                    DestroyImmediate(tilesRoot.GetChild(0).gameObject);
+                    GameObject go = tilesRoot.GetChild(0).gameObject;
+                    RemoveObject(TileObjectType.Tile, go);
+                    DestroyImmediate(go);
                 }
             }
         }
@@ -597,12 +661,42 @@ namespace Unity.Tilemaps
 
         public void ClearDecorateObject()
         {
+            if (allDecorateObjects != null)
+            {
+                bool handled;
+
+                while (allDecorateObjects.Count > 0)
+                {
+                    var go = allDecorateObjects[allDecorateObjects.Count - 1];
+                    if (go)
+                    {
+                        handled = false;
+
+                        RemoveObject(TileObjectType.Decorate, go);
+                        if (DestroyGameObject != null)
+                        {
+                            if (DestroyGameObject(go))
+                            {
+                                handled = true;
+                            }
+                        }
+                        if (!handled)
+                        {
+                            DestroyImmediate(go);
+                        }
+                    }
+                }
+
+            }
+
             for (int layerIndex = 0; layerIndex < Tilemap.layers.Length; layerIndex++)
             {
                 var decoratesRoot = GetDecoratesRoot(layerIndex);
                 while (decoratesRoot.childCount > 0)
                 {
-                    DestroyImmediate(decoratesRoot.GetChild(0).gameObject);
+                    GameObject go = decoratesRoot.GetChild(0).gameObject;
+                    RemoveObject(TileObjectType.Decorate, go);
+                    DestroyImmediate(go);
                 }
             }
 
@@ -764,6 +858,139 @@ namespace Unity.Tilemaps
             }
         }
 
+        #region Cell Bounds
+
+        public BoundsInt GetCameraCellBounds(Camera camera)
+        {
+            BoundsInt bounds = new BoundsInt();
+            if (!camera)
+                return bounds;
+            Vector2Int min, max;
+            if (!RayToCell(camera.ViewportPointToRay(new Vector3(0f, 0f, 0f)), out min))
+                return bounds;
+            if (!RayToCell(camera.ViewportPointToRay(new Vector3(1f, 1f, 0f)), out max))
+                return bounds;
+            bounds.SetMinMax(new Vector3Int(min.x, min.y, 0), new Vector3Int(max.x, max.y, 0));
+            bounds = NormalizeMinMax(bounds);
+            bounds.size += new Vector3Int(1, 1, 0);
+            return bounds;
+        }
+        public static bool Overlaps(BoundsInt a, BoundsInt b)
+        {
+            return new RectInt(a.xMin, a.yMin, a.size.x, a.size.y).Overlaps(new RectInt(b.xMin, b.yMin, b.size.x, b.size.y));
+        }
+        public bool OverlapsCellBounds(BoundsInt cellBounds)
+        {
+            return new RectInt(0, 0, Width, Height).Overlaps(new RectInt(cellBounds.xMin, cellBounds.yMin, cellBounds.size.x, cellBounds.size.y));
+        }
+
+
+
+        public void ClampCellBounds(ref BoundsInt bounds)
+        {
+            if (bounds.xMin < 0)
+                bounds.xMin = 0;
+            if (bounds.xMax > Width)
+                bounds.xMax = Width;
+            if (bounds.yMin < 0)
+                bounds.yMin = 0;
+            if (bounds.yMax > Height)
+                bounds.yMax = Height;
+        }
+        public static bool InCellBounds(BoundsInt cellBounds, Vector2Int cell)
+        {
+            var min = cellBounds.min;
+            var max = cellBounds.max;
+            //if (min.x <= cell.x && cell.x <= max.x && min.y <= cell.y && cell.y <= max.y)
+            //    return true;
+            if (min.x <= cell.x && cell.x < max.x && min.y <= cell.y && cell.y < max.y)
+                return true;
+            //if (cellBounds.Contains((Vector3Int)cell))
+            //return true;
+            return false;
+        }
+        public static bool InCellBounds(BoundsInt cellBounds, Vector3Int cell)
+        {
+            return InCellBounds(cellBounds, new Vector2Int(cell.x, cell.y));
+        }
+        public static BoundsInt NormalizeMinMax(BoundsInt bounds)
+        {
+            Vector3Int min, max;
+            min = bounds.min;
+            max = bounds.max;
+            if (min.x > max.x)
+            {
+                var tmp = max.x;
+                max.x = min.x;
+                min.x = tmp;
+            }
+            if (min.y > max.y)
+            {
+                var tmp = max.y;
+                max.y = min.y;
+                min.y = tmp;
+            }
+            if (min.z > max.z)
+            {
+                var tmp = max.z;
+                max.z = min.z;
+                min.z = tmp;
+            }
+            bounds = new BoundsInt();
+            bounds.SetMinMax(min, max);
+            return bounds;
+        }
+
+        public bool RayToCell(Ray ray, out Vector2Int cell)
+        {
+            Vector3 pos;
+            if (RayToWorldPosition(ray, out pos))
+            {
+                cell = WorldPositionToGrid(pos);
+                return true;
+            }
+            cell = new Vector2Int();
+            return false;
+        }
+        public bool RayToWorldPosition(Ray ray, out Vector3 worldPos)
+        {
+            Vector3 layerOffset = GetLayerOffset(0);
+            Plane plane = new Plane(transform.up, transform.position + layerOffset);
+            float dist;
+            if (plane.Raycast(ray, out dist))
+            {
+                worldPos = ray.GetPoint(dist);
+                return true;
+            }
+            worldPos = new Vector3();
+            return false;
+        }
+
+        public BoundsInt WorldBoundsToCellBounds(Bounds worldBounds)
+        {
+            var min = WorldPositionToGrid(worldBounds.min);
+            var max = WorldPositionToGrid(worldBounds.max);
+            var cellBounds = new BoundsInt();
+            cellBounds.SetMinMax((Vector3Int)min, (Vector3Int)max);
+            return cellBounds;
+        }
+        public Bounds CellBoundsToWorldBounds(BoundsInt cellBounds)
+        {
+            var min = GridToWorldPosition((Vector2Int)cellBounds.min);
+            var max = GridToWorldPosition((Vector2Int)cellBounds.max);
+            Bounds worldBounds = new Bounds();
+            worldBounds.SetMinMax(min, max);
+            return worldBounds;
+        }
+
+        #endregion
+
+
+        private void OnDestroy()
+        {
+            all.Remove(this);
+            Removed?.Invoke(this);
+        }
     }
 
 
@@ -776,8 +1003,14 @@ namespace Unity.Tilemaps
         public Vector3 position;
         public Vector3 rotation;
         public Vector3 scale;
+        public TileObjectType objectType;
     }
 
+    public enum TileObjectType
+    {
+        Tile,
+        Decorate,
+    }
 
     [Serializable]
     public class TemplateData

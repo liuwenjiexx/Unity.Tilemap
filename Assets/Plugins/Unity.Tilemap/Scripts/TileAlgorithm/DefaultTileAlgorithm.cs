@@ -19,8 +19,12 @@ namespace Unity.Tilemaps
             if (tileGroups.Length > 0)
             {
                 tileGroup = tileGroups[Random.Range(0, tileGroups.Length)];
-                blockPattern = GetPattern(tileGroup.tile, true);
-                groundPattern = GetPattern(tileGroup.tile, false);
+                bool isBlock = true;
+                if ((layer.flags & TilemapLayerFlags.TileInverse) != 0)
+                    isBlock = false;
+
+                blockPattern = GetPattern(tileGroup.tile, isBlock);
+                groundPattern = GetPattern(tileGroup.tile, !isBlock);
 
             }
             //Debug.Log("pattern:"+ layer.layerIndex + ", " + blockPattern.Length);
@@ -98,7 +102,7 @@ namespace Unity.Tilemaps
 
                                 if (findPattern.items.Count == 0)
                                     continue;
-                                
+
                                 pattern.FillBlock(excludeBlock, _x, _y);
                                 tileItem = findPattern.items[Random.Range(0, findPattern.items.Count)];
                                 var t = CreateTileObject(creator, tilemap, _x, _y, parent, tileItem, Vector3.zero, new Vector3(0f, pattern.offsetAngle, 0f), scale3);

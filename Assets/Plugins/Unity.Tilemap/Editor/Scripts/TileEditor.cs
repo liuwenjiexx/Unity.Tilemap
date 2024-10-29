@@ -20,7 +20,7 @@ namespace Unity.Tilemaps
         [MenuItem("Assets/Tilemap/Select Prefabs")]
         static void SelectPrefabs()
         {
-            selectedPrefabs = Selection.gameObjects.OrderBy(o=>o.name).ToArray();
+            selectedPrefabs = Selection.gameObjects.OrderBy(o => o.name).ToArray();
         }
 
         #region Preview
@@ -256,8 +256,15 @@ namespace Unity.Tilemaps
             }
 
 
+            bool hasPrefab = false;
+            for (int i = 0; i < tile.items.Length; i++)
+            {
+                var item = tile.items[i];
+                if (item.prefab)
+                    hasPrefab = true;
+            }
 
-            if (GUILayout.Button("prefab > Items (1)"))
+            if (hasPrefab && GUILayout.Button("prefab > Items (1)"))
             {
                 for (int i = 0; i < tile.items.Length; i++)
                 {
@@ -274,7 +281,7 @@ namespace Unity.Tilemaps
                 }
             }
 
-            if (GUILayout.Button("items > edge, block"))
+            if (tile.items != null && tile.items.Length > 0 && GUILayout.Button("items > edge, block"))
             {
                 for (int i = 0; i < tile.items.Length; i++)
                 {
@@ -331,6 +338,97 @@ namespace Unity.Tilemaps
 
         }
 
+        void GUITilePattern(Tile tile, TileItem tileItem)
+        {
+            TileType tileType = tileItem.tileType;
+            int displaySIze = 36;
+            Event evt = Event.current;
+            using (new GUILayout.VerticalScope(GUILayout.Width(displaySIze+4)))
+            {
+                Texture2D icon = null;
+
+                icon = itemSettings[tileType].icon;
+                Rect rect = GUILayoutUtility.GetRect(displaySIze, displaySIze, displaySIze, displaySIze, GUILayout.ExpandWidth(false));
+
+                //if (evt.type == EventType.Repaint)
+                //    GUI.DrawTexture(rect, icon);
+
+                DrawPatternPreview(rect, tileItem.GetPattern());
+
+                if (evt.type == EventType.MouseDown && evt.clickCount == 2 && rect.Contains(evt.mousePosition))
+                {
+                    patternItemEdit = tileItem;
+                    patternEdit = patternItemEdit.GetPattern().Clone();
+                    tileTypeEdit = patternItemEdit.tileType;
+                }
+
+                if (rect.Contains(evt.mousePosition))
+                {
+                    if (evt.type == EventType.ContextClick)
+                    {
+                        GenericMenu menu = new GenericMenu();
+                        if (selectedPrefabs != null && selectedPrefabs.Length > 0)
+                        {
+                            menu.AddItem(new GUIContent("Add Selected Prefabs"), false, () =>
+                            {
+                                if (tileItem.items == null)
+                                    tileItem.items = new TilePrefab[0];
+                                for (int j = 0; j < selectedPrefabs.Length; j++)
+                                {
+                                    if (tileItem.ContainsPrefab(selectedPrefabs[j]))
+                                        continue;
+                                    var _prefabItem = new TilePrefab() { prefab = selectedPrefabs[j], weight = 1f };
+                                    tileItem.items = tileItem.items.InsertArrayElementAtIndex(_prefabItem);
+                                }
+                                selectedPrefabs = null;
+                                SetAssetDirty();
+                            });
+                        }
+                        else
+                        {
+                            menu.AddDisabledItem(new GUIContent("Add Selected Prefabs"));
+                        }
+                        menu.ShowAsContext();
+                    }
+                }
+
+
+                if (evt.type == EventType.DragPerform || evt.type == EventType.DragUpdated)
+                {
+                    if (rect.Contains(evt.mousePosition))
+                    {
+                        GameObject[] gos = DragAndDrop.objectReferences.Select(o => o as GameObject).Where(o => o).ToArray();
+
+                        if (gos.Length > 0)
+                        {
+                            if (evt.type == EventType.DragPerform)
+                            {
+                                gos = gos.OrderBy(o => o.name).ToArray();
+
+                                if (tileItem.items == null)
+                                    tileItem.items = new TilePrefab[0];
+                                for (int j = 0; j < gos.Length; j++)
+                                {
+                                    var _prefabItem = new TilePrefab() { prefab = gos[j], weight = 1f };
+                                    tileItem.items = tileItem.items.InsertArrayElementAtIndex(_prefabItem);
+                                }
+
+                                GUI.changed = true;
+
+                                DragAndDrop.AcceptDrag();
+                                evt.Use();
+                            }
+                            else
+                            {
+                                DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+                            }
+                        }
+                    }
+                }
+
+
+            }
+        }
 
         void DrawTileItems(Tile tile, TileItem tileItem)
         {
@@ -354,101 +452,17 @@ namespace Unity.Tilemaps
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    using (new GUILayout.VerticalScope())
-                    {
-                        Texture2D icon = null;
-
-                        icon = itemSettings[tileType].icon;
-                        Rect rect = GUILayoutUtility.GetRect(displaySIze, displaySIze, displaySIze, displaySIze, GUILayout.ExpandWidth(false));
-
-                        //if (evt.type == EventType.Repaint)
-                        //    GUI.DrawTexture(rect, icon);
-
-                        DrawPatternPreview(rect, tileItem.GetPattern());
-
-                        if (evt.type == EventType.MouseDown && evt.clickCount == 2 && rect.Contains(evt.mousePosition))
-                        {
-                            patternItemEdit = tileItem;
-                            patternEdit = patternItemEdit.GetPattern().Clone();
-                            tileTypeEdit = patternItemEdit.tileType;
-                        }
-
-                        if (rect.Contains(evt.mousePosition))
-                        {
-                            if (evt.type == EventType.ContextClick)
-                            {
-                                GenericMenu menu = new GenericMenu();
-                                if (selectedPrefabs != null && selectedPrefabs.Length > 0)
-                                {
-                                    menu.AddItem(new GUIContent("Add Selected Prefabs"), false, () =>
-                                     {
-                                         if (tileItem.items == null)
-                                             tileItem.items = new TilePrefab[0];
-                                         for (int j = 0; j < selectedPrefabs.Length; j++)
-                                         {
-                                             if (tileItem.ContainsPrefab(selectedPrefabs[j]))
-                                                 continue;
-                                             var _prefabItem = new TilePrefab() { prefab = selectedPrefabs[j], weight = 1f };
-                                             tileItem.items = tileItem.items.InsertArrayElementAtIndex(_prefabItem);
-                                         }
-                                         selectedPrefabs = null;
-                                         SetAssetDirty();
-                                     });
-                                }
-                                else
-                                {
-                                    menu.AddDisabledItem(new GUIContent("Add Selected Prefabs"));
-                                }
-                                menu.ShowAsContext();
-                            }
-                        }
-
-
-                        if (evt.type == EventType.DragPerform || evt.type == EventType.DragUpdated)
-                        {
-                            if (rect.Contains(evt.mousePosition))
-                            {
-                                GameObject[] gos = DragAndDrop.objectReferences.Select(o => o as GameObject).Where(o => o).ToArray();
-
-                                if (gos.Length > 0)
-                                {
-                                    if (evt.type == EventType.DragPerform)
-                                    {
-                                        gos = gos.OrderBy(o => o.name).ToArray();
-
-                                        if (tileItem.items == null)
-                                            tileItem.items = new TilePrefab[0];
-                                        for (int j = 0; j < gos.Length; j++)
-                                        {
-                                            var _prefabItem = new TilePrefab() { prefab = gos[j], weight = 1f };
-                                            tileItem.items = tileItem.items.InsertArrayElementAtIndex(_prefabItem);
-                                        }
-
-                                        GUI.changed = true;
-
-                                        DragAndDrop.AcceptDrag();
-                                        evt.Use();
-                                    }
-                                    else
-                                    {
-                                        DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
-                                    }
-                                }
-                            }
-                        }
-
-
-                    }
+                  
                     using (new GUILayout.VerticalScope())
                     {
 
                         GUILayout.Space(0);
 
 
-                        TilePrefab firstPrefab = new TilePrefab();
+                        //TilePrefab firstPrefab = new TilePrefab();
 
-                        if (tileItem.items != null)
-                            firstPrefab = tileItem.items.FirstOrDefault();
+                        //if (tileItem.items != null)
+                        //    firstPrefab = tileItem.items.FirstOrDefault();
 
                         //if (i > 0)
                         //{
@@ -462,14 +476,15 @@ namespace Unity.Tilemaps
                         using (new GUILayout.HorizontalScope())
                         {
 
-                            using (new GUILayout.VerticalScope())
-                            {
+                            GUITilePattern(tile, tileItem);
+                            //using (new GUILayout.VerticalScope())
+                            //{
 
-                                Rect rect = GUILayoutUtility.GetRect(displaySIze, displaySIze, displaySIze, displaySIze, GUILayout.ExpandWidth(false));
+                            //    Rect rect = GUILayoutUtility.GetRect(displaySIze, displaySIze, displaySIze, displaySIze, GUILayout.ExpandWidth(false));
 
-                                GUIGameObjectPreviewBox(rect, tileItem, 0);
-                                GUILayout.Label(firstPrefab.prefab ? firstPrefab.prefab.name : "missing", NameStyle);
-                            }
+                            //    GUIGameObjectPreviewBox(rect, tileItem, 0);
+                            //    GUILayout.Label(firstPrefab.prefab ? firstPrefab.prefab.name : "missing", NameStyle);
+                            //}
 
                             using (new GUILayout.VerticalScope())
                             {
@@ -484,27 +499,28 @@ namespace Unity.Tilemaps
                                     GUILayout.Label("Offset", GUILayout.Width(labelWidth), GUILayout.MaxWidth(labelWidth));
                                     tileItem.offset = EditorGUILayout.Vector3Field(GUIContent.none, tileItem.offset);
                                 }
-                                if (tileItem.items.Length > 0)
-                                {
-                                    if (!tileItem.IsEmpty)
-                                        firstPrefab = tileItem.items.FirstOrDefault();
+                                //if (tileItem.items.Length > 0)
+                                //{
+                                //    if (!tileItem.IsEmpty)
+                                //        firstPrefab = tileItem.items.FirstOrDefault();
 
-                                    firstPrefab = GUITilePrefabProperty(firstPrefab);
-                                    if (!tileItem.IsEmpty)
-                                        tileItem.items[0] = firstPrefab;
-                                }
+                                //    firstPrefab = GUITilePrefabProperty(firstPrefab);
+                                //    if (!tileItem.IsEmpty)
+                                //        tileItem.items[0] = firstPrefab;
+                                //}
                             }
                         }
 
+                        if (tileItem.items == null)
+                            tileItem.items = new TilePrefab[0];
 
-
-                        for (int j = 1; j < tileItem.items.Length; j++)
+                        for (int j = 0; j < tileItem.items.Length; j++)
                         {
                             var prefabItem = tileItem.items[j];
 
                             using (new GUILayout.HorizontalScope())
                             {
-                                using (new GUILayout.VerticalScope())
+                                using (new GUILayout.VerticalScope(GUILayout.Width(displaySIze)))
                                 {
                                     Rect rect = GUILayoutUtility.GetRect(displaySIze, displaySIze, displaySIze, displaySIze, GUILayout.ExpandWidth(false));
 
@@ -680,7 +696,7 @@ namespace Unity.Tilemaps
                 if (itemSettings[tileType].selectedIndex == index)
                 {
                     new RectOffset(1, 1, 1, 1).Add(rect)
-                           .GUIDrawBorder(1, new Color(0, 0, 1f, 0.5f));
+                           .GUIDrawBorder(1, new Color(1f, 1f, 0f, 0.5f));
                 }
 
                 tileItem.items[index] = prefabItem;

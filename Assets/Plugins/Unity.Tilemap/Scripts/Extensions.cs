@@ -250,5 +250,63 @@ namespace Unity.Tilemaps
             return index;
         }
 
+        public static IEnumerable<Vector3> EnumeratePoints(this Bounds bounds)
+        {
+            Vector3 min = bounds.min, max = bounds.max;
+            yield return min;
+            yield return new Vector3(max.x, min.y, min.z);
+            yield return new Vector3(max.x, max.y, min.z);
+            yield return new Vector3(min.x, max.y, min.z);
+            yield return new Vector3(min.x, min.y, max.z);
+            yield return new Vector3(max.x, min.y, max.z);
+            yield return max;
+            yield return new Vector3(min.x, max.y, max.z);
+        }
+        public static Vector3[] ToPoints(this Bounds bounds)
+        {
+            Vector3[] points = new Vector3[8];
+            ToPoints(bounds, points, 0);
+            return points;
+        }
+        public static void ToPoints(this Bounds bounds, Vector3[] points, int arrayOffset)
+        {
+            Vector3 min = bounds.min, max = bounds.max;
+
+            points[arrayOffset] = min;
+            points[arrayOffset + 1] = new Vector3(max.x, min.y, min.z);
+            points[arrayOffset + 2] = new Vector3(max.x, max.y, min.z);
+            points[arrayOffset + 3] = new Vector3(min.x, max.y, min.z);
+            points[arrayOffset + 4] = new Vector3(min.x, min.y, max.z);
+            points[arrayOffset + 5] = new Vector3(max.x, min.y, max.z);
+            points[arrayOffset + 6] = max;
+            points[arrayOffset + 7] = new Vector3(min.x, max.y, max.z);
+        }
+        public static void GizmosDrawLineStrip(this IEnumerable<Vector3> points, Color color, bool closed)
+        {
+            Vector3 first = new Vector3();
+            Vector3 last = new Vector3();
+            bool isFirst = true;
+            Color oldColor = Gizmos.color;
+            Gizmos.color = color;
+            foreach (var point in points)
+            {
+                if (isFirst)
+                {
+                    first = point;
+                    isFirst = false;
+                }
+                else
+                {
+                    Gizmos.DrawLine(last, point);
+                }
+
+                last = point;
+            }
+            if (!isFirst && closed)
+            {
+                Gizmos.DrawLine(last, first);
+            }
+            Gizmos.color = oldColor;
+        }
     }
 }

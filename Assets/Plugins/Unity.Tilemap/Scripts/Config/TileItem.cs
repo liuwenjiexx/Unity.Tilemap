@@ -31,7 +31,6 @@ namespace Unity.Tilemaps
         public TilePrefab[] items;
 
 
-
         public TilePattern GetPattern()
         {
             TilePattern result = null;

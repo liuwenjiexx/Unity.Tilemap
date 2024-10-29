@@ -16,15 +16,25 @@ namespace Unity.Tilemaps
         public Vector2Int offset;
         public float offsetAngle;
 
+        public int BlockCount { get; private set; }
+
+
+
         public TilePattern()
         {
             this.grids = new TilePatternGrid[0];
         }
 
-        public TilePattern(params TilePatternGrid[] grids)
+        public TilePattern( params TilePatternGrid[] grids)
         {
             this.grids = new TilePatternGrid[grids.Length];
             grids.CopyTo(this.grids, 0);
+            BlockCount = 0;
+            foreach(var cell in grids)
+            {
+                if (cell.IsBlock)
+                    BlockCount++;
+            }
         }
 
         public TilePatternGrid this[int index]
